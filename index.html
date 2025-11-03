@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Juego de Química - Dado 3D</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Orbitron', sans-serif;
+    background: linear-gradient(135deg, #002b36, #004d4d);
+    color: white;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  h1 {
+    margin-top: 20px;
+    font-size: 2.2em;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+  }
+
+  .scene {
+    width: 150px;
+    height: 150px;
+    margin: 60px auto 20px;
+    perspective: 600px;
+  }
+
+  .cube {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s;
+  }
+
+  .face {
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    background: rgba(0, 255, 255, 0.2);
+    border: 2px solid #00ffff;
+    border-radius: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3em;
+    color: #fff;
+  }
+
+  .front  { transform: rotateY(0deg) translateZ(75px); }
+  .back   { transform: rotateY(180deg) translateZ(75px); }
+  .right  { transform: rotateY(90deg) translateZ(75px); }
+  .left   { transform: rotateY(-90deg) translateZ(75px); }
+  .top    { transform: rotateX(90deg) translateZ(75px); }
+  .bottom { transform: rotateX(-90deg) translateZ(75px); }
+
+  button {
+    background-color: #00cccc;
+    border: none;
+    color: #002b36;
+    padding: 10px 25px;
+    border-radius: 12px;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: background 0.3s;
+    font-weight: bold;
+  }
+  button:hover { background-color: #00ffff; }
+
+  #question-container {
+    margin-top: 30px;
+    font-size: 1.3em;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #feedback {
+    margin-top: 20px;
+    font-size: 1.2em;
+  }
+
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+  <h1>🎲 Juego de Química 🧪</h1>
+
+  <div class="scene">
+    <div class="cube" id="cube">
+      <div class="face front">1</div>
+      <div class="face back">2</div>
+      <div class="face right">3</div>
+      <div class="face left">4</div>
+      <div class="face top">5</div>
+      <div class="face bottom">6</div>
+    </div>
+  </div>
+
+  <button id="rollBtn">Lanzar Dado</button>
+
+  <div id="question-container"></div>
+  <div id="feedback"></div>
+
+  <audio id="errorSound" src="https://www.myinstants.com/media/sounds/windows-error.mp3"></audio>
+
+  <canvas id="confettiCanvas"></canvas>
+
+<script>
+const cube = document.getElementById('cube');
+const rollBtn = document.getElementById('rollBtn');
+const questionContainer = document.getElementById('question-container');
+const feedback = document.getElementById('feedback');
+const errorSound = document.getElementById('errorSound');
+
+const questions = {
+  1: [
+    { q: "El agua está compuesta por dos átomos de hidrógeno y uno de oxígeno.", a: true },
+    { q: "El helio es un gas inflamable.", a: false },
+    { q: "El punto de ebullición del agua es 100°C a nivel del mar.", a: true },
+  ],
+  2: [
+    { q: "El número atómico representa la cantidad de protones en un átomo.", a: true },
+    { q: "El oxígeno tiene número atómico 8.", a: true },
+    { q: "El nitrógeno tiene más protones que el oxígeno.", a: false },
+  ],
+  3: [
+    { q: "Los metales son buenos conductores de electricidad.", a: true },
+    { q: "El azufre es un metal.", a: false },
+    { q: "El mercurio es el único metal líquido a temperatura ambiente.", a: true },
+  ],
+  4: [
+    { q: "El ácido clorhídrico se usa en los procesos digestivos del estómago.", a: true },
+    { q: "Los ácidos tienen pH mayor que 7.", a: false },
+    { q: "El vinagre contiene ácido acético.", a: true },
+  ],
+  5: [
+    { q: "La tabla periódica está ordenada según la masa atómica.", a: false },
+    { q: "Los gases nobles se encuentran en el grupo 18.", a: true },
+    { q: "El sodio pertenece al grupo de los metales alcalinos.", a: true },
+  ],
+  6: [
+    { q: "El carbono puede formar enlaces covalentes.", a: true },
+    { q: "El dióxido de carbono es un gas tóxico en altas concentraciones.", a: true },
+    { q: "El oro es un compuesto químico.", a: false },
+  ]
+};
+
+function rollDice() {
+  const x = Math.floor(Math.random() * 4 + 1) * 90;
+  const y = Math.floor(Math.random() * 4 + 1) * 90;
+  cube.style.transform = `rotateX(${x}deg) rotateY(${y}deg)`;
+
+  setTimeout(() => {
+    const num = Math.floor(Math.random() * 6) + 1;
+    showQuestion(num);
+  }, 1000);
+}
+
+function showQuestion(num) {
+  feedback.innerHTML = "";
+  const group = questions[num];
+  const q = group[Math.floor(Math.random() * group.length)];
+  questionContainer.innerHTML = `
+    <p>${q.q}</p>
+    <button onclick="checkAnswer(true, ${q.a})">Verdadero</button>
+    <button onclick="checkAnswer(false, ${q.a})">Falso</button>
+  `;
+}
+
+function checkAnswer(choice, correct) {
+  if (choice === correct) {
+    feedback.innerHTML = "✅ ¡Correcto!";
+    launchConfetti();
+  } else {
+    feedback.innerHTML = `❌ Incorrecto. La respuesta correcta era: <b>${correct ? 'Verdadero' : 'Falso'}</b>.`;
+    errorSound.play();
+  }
+  questionContainer.innerHTML = "";
+}
+
+rollBtn.addEventListener('click', rollDice);
+
+// Confetti animation
+function launchConfetti() {
+  const duration = 2 * 1000;
+  const end = Date.now() + duration;
+  const colors = ['#00ffff', '#00cc99', '#66ffcc', '#ffffff'];
+
+  (function frame() {
+    const timeLeft = end - Date.now();
+    if (timeLeft <= 0) return;
+    const particleCount = 5 * (timeLeft / duration);
+    confetti({
+      particleCount,
+      startVelocity: 30,
+      spread: 360,
+      ticks: 60,
+      origin: { x: Math.random(), y: Math.random() - 0.2 },
+      colors: colors
+    });
+    requestAnimationFrame(frame);
+  })();
+}
+
+// Load confetti library
+const script = document.createElement("script");
+script.src = "https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js";
+document.body.appendChild(script);
+</script>
+</body>
+</html>
